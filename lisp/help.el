@@ -455,9 +455,10 @@ the variable `message-log-max'."
   (info "(efaq)Packages that do not come with Emacs"))
 
 (defun view-lossage ()
-  "Display last few input keystrokes and the commands run.
+  "Display last input keystrokes and the commands run.
 For convenience this uses the same format as
 `edit-last-kbd-macro'.
+See `lossage-limit' to update the number of recorded keystrokes.
 
 To record all your input, use `open-dribble-file'."
   (interactive)

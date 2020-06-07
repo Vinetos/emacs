@@ -35,8 +35,8 @@
 ;;  * `M-x' followed by a command name, to edit a named command
 ;;    whose definition is a keyboard macro.
 ;;
-;;  * `C-h l' (view-lossage), to edit the 300 most recent keystrokes
-;;    and install them as the "current" macro.
+;;  * `C-h l' (view-lossage), to edit the `lossage-limit' most recent
+;;    keystrokes and install them as the "current" macro.
 ;;
 ;;  * any key sequence whose definition is a keyboard macro.
 ;;
@@ -88,7 +88,7 @@ Default nil means to write characters above \\177 in octal notation."
   "Edit a keyboard macro.
 At the prompt, type any key sequence which is bound to a keyboard macro.
 Or, type `\\[kmacro-end-and-call-macro]' or RET to edit the last
-keyboard macro, `\\[view-lossage]' to edit the last 300
+keyboard macro, `\\[view-lossage]' to edit the last `lossage-limit'
 keystrokes as a keyboard macro, or `\\[execute-extended-command]'
 to edit a macro by its command name.
 With a prefix argument, format the macro in a more concise way."

@@ -32,5 +32,16 @@
                         (read-event nil nil 2))
                  ?\C-b)))
 
+(ert-deftest keyboard-lossage-limit ()
+  "Test `lossage-limit' updates."
+  (dolist (val (list 100 100 200 500 300 1000 700))
+    (update-lossage-limit val)
+    (should (= val lossage-limit)))
+  (let ((current-limit lossage-limit))
+    (should-error (update-lossage-limit 5))
+    (should-error (update-lossage-limit "200"))
+    (should (= lossage-limit current-limit))))
+
+
 (provide 'keyboard-tests)
 ;;; keyboard-tests.el ends here

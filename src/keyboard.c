@@ -103,7 +103,7 @@ static KBOARD *all_kboards;
 /* True in the single-kboard state, false in the any-kboard state.  */
 static bool single_kboard;
 
-#define NUM_RECENT_KEYS (300)
+#define MIN_NUM_RECENT_KEYS (100)
 
 /* Index for storing next element into recent_keys.  */
 static int recent_keys_index;
@@ -111,7 +111,7 @@ static int recent_keys_index;
 /* Total number of elements stored into recent_keys.  */
 static int total_keys;
 
-/* This vector holds the last NUM_RECENT_KEYS keystrokes.  */
+/* This vector holds the last lossage_limit keystrokes.  */
 static Lisp_Object recent_keys;
 
 /* Vector holding the key sequence that invoked the current command.
@@ -293,6 +293,7 @@ static union buffered_input_event *kbd_fetch_ptr;
 
 /* Pointer to next place to store character in kbd_buffer.  */
 static union buffered_input_event *kbd_store_ptr;
+
 
 /* The above pair of variables forms a "queue empty" flag.  When we
    enqueue a non-hook event, we increment kbd_store_ptr.  When we
@@ -1421,10 +1422,10 @@ command_loop_1 (void)
       /* Execute the command.  */
 
       {
-	total_keys += total_keys < NUM_RECENT_KEYS;
+	total_keys += total_keys < lossage_limit;
 	ASET (recent_keys, recent_keys_index,
 	      Fcons (Qnil, cmd));
-	if (++recent_keys_index >= NUM_RECENT_KEYS)
+	if (++recent_keys_index >= lossage_limit)
 	  recent_keys_index = 0;
       }
       Vthis_command = cmd;
@@ -3248,15 +3249,15 @@ record_char (Lisp_Object c)
       int ix1, ix2, ix3;
 
       if ((ix1 = recent_keys_index - 1) < 0)
-	ix1 = NUM_RECENT_KEYS - 1;
+	ix1 = lossage_limit - 1;
       ev1 = AREF (recent_keys, ix1);
 
       if ((ix2 = ix1 - 1) < 0)
-	ix2 = NUM_RECENT_KEYS - 1;
+	ix2 = lossage_limit - 1;
       ev2 = AREF (recent_keys, ix2);
 
       if ((ix3 = ix2 - 1) < 0)
-	ix3 = NUM_RECENT_KEYS - 1;
+	ix3 = lossage_limit - 1;
       ev3 = AREF (recent_keys, ix3);
 
       if (EQ (XCAR (c), Qhelp_echo))
@@ -3307,12 +3308,12 @@ record_char (Lisp_Object c)
     {
       if (!recorded)
 	{
-	  total_keys += total_keys < NUM_RECENT_KEYS;
+	  total_keys += total_keys < lossage_limit;
 	  ASET (recent_keys, recent_keys_index,
                 /* Copy the event, in case it gets modified by side-effect
                    by some remapping function (bug#30955).  */
                 CONSP (c) ? Fcopy_sequence (c) : c);
-	  if (++recent_keys_index >= NUM_RECENT_KEYS)
+	  if (++recent_keys_index >= lossage_limit)
 	    recent_keys_index = 0;
 	}
       else if (recorded < 0)
@@ -3326,10 +3327,10 @@ record_char (Lisp_Object c)
 
 	  while (recorded++ < 0 && total_keys > 0)
 	    {
-	      if (total_keys < NUM_RECENT_KEYS)
+	      if (total_keys < lossage_limit)
 		total_keys--;
 	      if (--recent_keys_index < 0)
-		recent_keys_index = NUM_RECENT_KEYS - 1;
+		recent_keys_index = lossage_limit - 1;
 	      ASET (recent_keys, recent_keys_index, Qnil);
 	    }
 	}
@@ -10410,6 +10411,55 @@ If CHECK-TIMERS is non-nil, timers that are ready to run will do so.  */)
 	  ? Qt : Qnil);
 }
 
+static void
+update_recent_keys (int new_size, int kept_keys)
+{
+  int osize = ASIZE (recent_keys);
+  eassert (recent_keys_index < osize);
+  eassert (kept_keys <= min (osize, new_size));
+  Lisp_Object v = make_nil_vector (new_size);
+  int i, idx;
+  for (i = 0; i < kept_keys; ++i)
+    {
+      idx = recent_keys_index - kept_keys + i;
+      while (idx < 0)
+        idx += osize;
+      ASET (v, i, AREF (recent_keys, idx));
+    }
+  recent_keys = v;
+  total_keys = kept_keys;
+  recent_keys_index = total_keys % new_size;
+  lossage_limit = new_size;
+
+}
+
+/* Reallocate recent_keys copying the keystrokes in the right order */
+DEFUN ("update-lossage-limit", Fupdate_lossage_limit,
+       Supdate_lossage_limit, 1, 1, 0,
+       doc: /* Update the maximum number of saved keystrokes to ARG.
+usage: (update-lossage-limit ARG)  */)
+  (Lisp_Object arg)
+{
+  if (!FIXNATP (arg))
+    user_error ("Value must be a positive integer");
+  int osize = ASIZE (recent_keys);
+  eassert (lossage_limit == osize);
+  int min_size = MIN_NUM_RECENT_KEYS;
+  int new_size = XFIXNAT (arg);
+
+  if (new_size == osize)
+    return Qnil;
+  if (new_size < min_size)
+    {
+      AUTO_STRING (fmt, "Value must be >= %d");
+      Fsignal (Quser_error, list1 (CALLN (Fformat, fmt, make_fixnum (min_size))));
+    }
+  int kept_keys = new_size > osize ? total_keys : min (new_size, total_keys);
+  update_recent_keys (new_size, kept_keys);
+
+  return Qnil;
+}
+
 DEFUN ("recent-keys", Frecent_keys, Srecent_keys, 0, 1, 0,
        doc: /* Return vector of last few events, not counting those from keyboard macros.
 If INCLUDE-CMDS is non-nil, include the commands that were run,
@@ -10419,21 +10469,21 @@ represented as pseudo-events of the form (nil . COMMAND).  */)
   bool cmds = !NILP (include_cmds);
 
   if (!total_keys
-      || (cmds && total_keys < NUM_RECENT_KEYS))
+      || (cmds && total_keys < lossage_limit))
     return Fvector (total_keys,
 		    XVECTOR (recent_keys)->contents);
   else
     {
       Lisp_Object es = Qnil;
-      int i = (total_keys < NUM_RECENT_KEYS
+      int i = (total_keys < lossage_limit
 	       ? 0 : recent_keys_index);
-      eassert (recent_keys_index < NUM_RECENT_KEYS);
+      eassert (recent_keys_index < lossage_limit);
       do
 	{
 	  Lisp_Object e = AREF (recent_keys, i);
 	  if (cmds || !CONSP (e) || !NILP (XCAR (e)))
 	    es = Fcons (e, es);
-	  if (++i >= NUM_RECENT_KEYS)
+	  if (++i >= lossage_limit)
 	    i = 0;
 	} while (i != recent_keys_index);
       es = Fnreverse (es);
@@ -11686,7 +11736,23 @@ syms_of_keyboard (void)
     staticpro (&modifier_symbols);
   }
 
-  recent_keys = make_nil_vector (NUM_RECENT_KEYS);
+  DEFVAR_INT ("lossage-limit", lossage_limit,
+              doc: /* Maximum number of stored keyboard events and commands run.
+
+Please, do not set this variable in Lisp with `setq' neither
+let-bind it, that will likely crash Emacs.  This is because
+`setq' only changes the variable, but it doesn't update
+the size of the internal vector that holds the keystrokes.
+
+To update this variable use the customization menu, or
+call from Lisp the following expression:
+
+  (update-lossage-limit new-limit)
+
+That takes care of both, the variable and the internal vector.*/);
+  lossage_limit = 3 * MIN_NUM_RECENT_KEYS;
+
+  recent_keys = make_nil_vector (lossage_limit);
   staticpro (&recent_keys);
 
   this_command_keys = make_nil_vector (40);
@@ -11736,6 +11802,7 @@ syms_of_keyboard (void)
   defsubr (&Srecursive_edit);
   defsubr (&Sinternal_track_mouse);
   defsubr (&Sinput_pending_p);
+  defsubr (&Supdate_lossage_limit);
   defsubr (&Srecent_keys);
   defsubr (&Sthis_command_keys);
   defsubr (&Sthis_command_keys_vector);
