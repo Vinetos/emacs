@@ -103,8 +103,6 @@ static KBOARD *all_kboards;
 /* True in the single-kboard state, false in the any-kboard state.  */
 static bool single_kboard;
 
-#define MIN_NUM_RECENT_KEYS (100)
-
 /* Index for storing next element into recent_keys.  */
 static int recent_keys_index;
 
@@ -10444,7 +10442,7 @@ usage: (update-lossage-limit ARG)  */)
     user_error ("Value must be a positive integer");
   int osize = ASIZE (recent_keys);
   eassert (lossage_limit == osize);
-  int min_size = MIN_NUM_RECENT_KEYS;
+  int min_size = 1;
   int new_size = XFIXNAT (arg);
 
   if (new_size == osize)
@@ -11749,8 +11747,11 @@ call from Lisp the following expression:
 
   (update-lossage-limit new-limit)
 
-That takes care of both, the variable and the internal vector.*/);
-  lossage_limit = 3 * MIN_NUM_RECENT_KEYS;
+That takes care of both, the variable and the internal vector.
+
+Security note: The value 1 makes impossible to recover a typed string
+with `view-lossage'.*/);
+  lossage_limit = 300;
 
   recent_keys = make_nil_vector (lossage_limit);
   staticpro (&recent_keys);
