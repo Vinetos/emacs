@@ -579,14 +579,8 @@ use @kbd{C-h l} (@code{view-lossage}).  @kbd{C-h l} displays your last
 input keystrokes and the commands they invoked.  By default, Emacs
 stores the last 300 events; if you wish, you can change this number
 with the option @code{lossage-limit}.
-If you see commands that you are not familiar with, you can use @kbd{C-h k}
-or @kbd{C-h f} to find out what they do.
-If you don't like that Emacs saves your keystrokes, then you can
-set @code{lossage-limit} equal to 1; such a value effectively disables the
-record of the keystrokes.  Please, do not set this option with @code{setq}
-neither let-bind it; that will likely crash Emacs.  Use instead the
-customization menu, which also updates the internal structure holding
-the keystrokes.
+If you see commands that you are not familiar with, you can use @kbd{C-h k} or
+@kbd{C-h f} to find out what they do.
 
 @kindex C-h e
 @findex view-echo-area-messages

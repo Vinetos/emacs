@@ -38,7 +38,7 @@
     (update-lossage-limit val)
     (should (= val lossage-limit)))
   (let ((current-limit lossage-limit))
-    (should-error (update-lossage-limit 0))
+    (should-error (update-lossage-limit 5))
     (should-error (update-lossage-limit "200"))
     (should (= lossage-limit current-limit))))
 
