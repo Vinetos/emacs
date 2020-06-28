@@ -357,8 +357,6 @@ Leaving \"Default\" unchecked is equivalent with specifying a default of
 	     ;; indent.c
 	     (indent-tabs-mode indent boolean)
 	     ;; keyboard.c
-             (lossage-limit keyboard integer "28.1"
-                            :set (lambda (_ val) (update-lossage-limit val)))
 	     (meta-prefix-char keyboard character)
 	     (auto-save-interval auto-save integer)
              (auto-save-no-message auto-save boolean "27.1")

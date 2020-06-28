@@ -103,6 +103,7 @@ static KBOARD *all_kboards;
 /* True in the single-kboard state, false in the any-kboard state.  */
 static bool single_kboard;
 
+/* Minimum allowed size of the recent_keys vector */
 #define MIN_NUM_RECENT_KEYS (100)
 
 /* Index for storing next element into recent_keys.  */
@@ -110,6 +111,9 @@ static int recent_keys_index;
 
 /* Total number of elements stored into recent_keys.  */
 static int total_keys;
+
+/* Size of the recent_keys vector */
+static int lossage_limit = 3 * MIN_NUM_RECENT_KEYS;
 
 /* This vector holds the last lossage_limit keystrokes.  */
 static Lisp_Object recent_keys;
@@ -10411,6 +10415,15 @@ If CHECK-TIMERS is non-nil, timers that are ready to run will do so.  */)
 	  ? Qt : Qnil);
 }
 
+DEFUN ("lossage-size", Flossage_size, Slossage_size, 0, 0, 0,
+       doc: /* Return the maximum number of saved keystrokes.
+These are the records shown by `view-lossage'. */ )
+  (void)
+{
+  return make_fixnum(lossage_limit);
+}
+
+/* Reallocate recent_keys copying the keystrokes in the right order */
 static void
 update_recent_keys (int new_size, int kept_keys)
 {
@@ -10433,10 +10446,10 @@ update_recent_keys (int new_size, int kept_keys)
 
 }
 
-/* Reallocate recent_keys copying the keystrokes in the right order */
-DEFUN ("update-lossage-limit", Fupdate_lossage_limit,
-       Supdate_lossage_limit, 1, 1, 0,
+DEFUN ("update-lossage-size", Fupdate_lossage_size,
+       Supdate_lossage_size, 1, 1, "nnew-size: ",
        doc: /* Update the maximum number of saved keystrokes to ARG.
+These are the records shown by `view-lossage'.
 usage: (update-lossage-limit ARG)  */)
   (Lisp_Object arg)
 {
@@ -11736,22 +11749,6 @@ syms_of_keyboard (void)
     staticpro (&modifier_symbols);
   }
 
-  DEFVAR_INT ("lossage-limit", lossage_limit,
-              doc: /* Maximum number of stored keyboard events and commands run.
-
-Please, do not set this variable in Lisp with `setq' neither
-let-bind it, that will likely crash Emacs.  This is because
-`setq' only changes the variable, but it doesn't update
-the size of the internal vector that holds the keystrokes.
-
-To update this variable use the customization menu, or
-call from Lisp the following expression:
-
-  (update-lossage-limit new-limit)
-
-That takes care of both, the variable and the internal vector.*/);
-  lossage_limit = 3 * MIN_NUM_RECENT_KEYS;
-
   recent_keys = make_nil_vector (lossage_limit);
   staticpro (&recent_keys);
 
@@ -11802,7 +11799,8 @@ That takes care of both, the variable and the internal vector.*/);
   defsubr (&Srecursive_edit);
   defsubr (&Sinternal_track_mouse);
   defsubr (&Sinput_pending_p);
-  defsubr (&Supdate_lossage_limit);
+  defsubr (&Slossage_size);
+  defsubr (&Supdate_lossage_size);
   defsubr (&Srecent_keys);
   defsubr (&Sthis_command_keys);
   defsubr (&Sthis_command_keys_vector);

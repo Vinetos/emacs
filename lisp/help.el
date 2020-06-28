@@ -458,7 +458,7 @@ the variable `message-log-max'."
   "Display last input keystrokes and the commands run.
 For convenience this uses the same format as
 `edit-last-kbd-macro'.
-See `lossage-limit' to update the number of recorded keystrokes.
+See `update-lossage-size' to update the number of recorded keystrokes.
 
 To record all your input, use `open-dribble-file'."
   (interactive)

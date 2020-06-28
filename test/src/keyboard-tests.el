@@ -32,15 +32,15 @@
                         (read-event nil nil 2))
                  ?\C-b)))
 
-(ert-deftest keyboard-lossage-limit ()
-  "Test `lossage-limit' updates."
-  (dolist (val (list 100 100 200 500 300 1000 700))
-    (update-lossage-limit val)
-    (should (= val lossage-limit)))
-  (let ((current-limit lossage-limit))
-    (should-error (update-lossage-limit 5))
-    (should-error (update-lossage-limit "200"))
-    (should (= lossage-limit current-limit))))
+(ert-deftest keyboard-lossage-size ()
+  "Test `update-lossage-size'."
+  (dolist (val (list 100 300 400 400 500 1000 700 300))
+    (update-lossage-size val)
+    (should (= val (lossage-size))))
+  (let ((current-size (lossage-size)))
+    (should-error (update-lossage-size 5))
+    (should-error (update-lossage-size "200"))
+    (should (= (lossage-size) current-size))))
 
 
 (provide 'keyboard-tests)
