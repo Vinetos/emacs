@@ -2393,7 +2393,7 @@ password prompting should occur.")
 Then send it to the process running in the current buffer.
 The string is sent using `comint-input-sender'.
 Security bug: your string can still be temporarily recovered with
-\\[view-lossage]; `clear-this-command-keys' can fix that."
+\\[view-lossage]; `clear-this-command-keys' and `lossage-size' can fix that."
   (interactive "P")			; Defeat snooping via C-x ESC ESC
   (let ((proc (get-buffer-process (current-buffer)))
 	(prefix

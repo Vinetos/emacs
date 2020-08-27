@@ -103,9 +103,6 @@ static KBOARD *all_kboards;
 /* True in the single-kboard state, false in the any-kboard state.  */
 static bool single_kboard;
 
-/* Minimum allowed size of the recent_keys vector */
-#define MIN_NUM_RECENT_KEYS (100)
-
 /* Index for storing next element into recent_keys.  */
 static int recent_keys_index;
 
@@ -113,7 +110,7 @@ static int recent_keys_index;
 static int total_keys;
 
 /* Size of the recent_keys vector */
-static int lossage_limit = 3 * MIN_NUM_RECENT_KEYS;
+static int lossage_limit = 300;
 
 /* This vector holds the last lossage_limit keystrokes.  */
 static Lisp_Object recent_keys;
@@ -10415,14 +10412,6 @@ If CHECK-TIMERS is non-nil, timers that are ready to run will do so.  */)
 	  ? Qt : Qnil);
 }
 
-DEFUN ("lossage-size", Flossage_size, Slossage_size, 0, 0, 0,
-       doc: /* Return the maximum number of saved keystrokes.
-These are the records shown by `view-lossage'. */ )
-  (void)
-{
-  return make_fixnum(lossage_limit);
-}
-
 /* Reallocate recent_keys copying the keystrokes in the right order */
 static void
 update_recent_keys (int new_size, int kept_keys)
@@ -10446,27 +10435,33 @@ update_recent_keys (int new_size, int kept_keys)
 
 }
 
-DEFUN ("update-lossage-size", Fupdate_lossage_size,
-       Supdate_lossage_size, 1, 1, "nnew-size: ",
-       doc: /* Update the maximum number of saved keystrokes to ARG.
-These are the records shown by `view-lossage'.
-usage: (update-lossage-limit ARG)  */)
+DEFUN ("lossage-size", Flossage_size, Slossage_size, 0, 1,
+       "(list (read-number \"new-size: \" (lossage-size)))",
+       doc: /* Return the maximum number of saved keystrokes.
+Called with ARG, then set this number to ARG.
+
+The saved keystrokes are the records shown by `view-lossage'.
+If you want to disable the lossage records, then set this maximum to a
+small number, e.g. 0.
+usage: (lossage-size &optional ARG) */)
   (Lisp_Object arg)
 {
+  if (NILP(arg))
+    return make_fixnum(lossage_limit == 1 ? 0 : lossage_limit);
+
   if (!FIXNATP (arg))
-    user_error ("Value must be a positive integer");
+    user_error ("Value must be a non-negative integer");
   int osize = ASIZE (recent_keys);
   eassert (lossage_limit == osize);
-  int min_size = MIN_NUM_RECENT_KEYS;
   int new_size = XFIXNAT (arg);
 
   if (new_size == osize)
     return Qnil;
-  if (new_size < min_size)
-    {
-      AUTO_STRING (fmt, "Value must be >= %d");
-      Fsignal (Quser_error, list1 (CALLN (Fformat, fmt, make_fixnum (min_size))));
-    }
+  /* Internally, the minimum lossage_limit is 1; users will likely use
+     0 to disable the lossage, thus here we change 0 -> 1.  */
+  if (new_size == 0)
+    new_size = 1;
+
   int kept_keys = new_size > osize ? total_keys : min (new_size, total_keys);
   update_recent_keys (new_size, kept_keys);
 
@@ -10594,7 +10589,7 @@ The value is always a vector.  */)
 DEFUN ("clear-this-command-keys", Fclear_this_command_keys,
        Sclear_this_command_keys, 0, 1, 0,
        doc: /* Clear out the vector that `this-command-keys' returns.
-Also clear the record of the last 300 input events, unless optional arg
+Also clear the record of the last input events, unless optional arg
 KEEP-RECORD is non-nil.  */)
   (Lisp_Object keep_record)
 {
@@ -11800,7 +11795,6 @@ syms_of_keyboard (void)
   defsubr (&Sinternal_track_mouse);
   defsubr (&Sinput_pending_p);
   defsubr (&Slossage_size);
-  defsubr (&Supdate_lossage_size);
   defsubr (&Srecent_keys);
   defsubr (&Sthis_command_keys);
   defsubr (&Sthis_command_keys_vector);

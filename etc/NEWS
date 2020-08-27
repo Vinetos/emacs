@@ -86,15 +86,18 @@ useful on systems such as FreeBSD which ships only with "etc/termcap".
 * Changes in Emacs 28.1
 
 +++
+** The new command 'lossage-limit' controls the maximum number
+of keystrokes and commands recorded.
+
++++
 ** New variables that hold default buffer names for shell output.
 The new constants 'shell-command-buffer-name' and
 'shell-command-buffer-name-async' store the default buffer names
 for the output of, respectively, synchronous and async shell
 commands.
 
-+++
-** The new command 'lossage-limit' controls the maximum number
-of keystrokes and commands recorded.
+** The new command lossage-size' allow users to set the maximum
+number of keystrokes and commands recorded.
 
 ** Support for '(box . SIZE)' 'cursor-type'.
 By default, 'box' cursor always has a filled box shape.  But if you

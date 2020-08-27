@@ -33,13 +33,20 @@
                  ?\C-b)))
 
 (ert-deftest keyboard-lossage-size ()
-  "Test `update-lossage-size'."
+  "Test `lossage-size'."
   (dolist (val (list 100 300 400 400 500 1000 700 300))
-    (update-lossage-size val)
+    (lossage-size val)
     (should (= val (lossage-size))))
   (let ((current-size (lossage-size)))
-    (should-error (update-lossage-size 5))
-    (should-error (update-lossage-size "200"))
+    ;; Set lossage size to 1 and 0 are equivalent
+    (lossage-size 0)
+    (should (zerop (lossage-size)))
+    (lossage-size 1)
+    (should (zerop (lossage-size)))
+    (lossage-size current-size)
+    ;; Argument must be a natural number
+    (should-error (lossage-size -5))
+    (should-error (lossage-size "200"))
     (should (= (lossage-size) current-size))))
 
 
